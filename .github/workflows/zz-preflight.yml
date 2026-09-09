@@ -1,0 +1,25 @@
+name: buildbot preflight (vita)
+on: [push, workflow_dispatch]
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The default build still builds
+        run: |
+          make -f Makefile.libretro -j$(nproc)
+          nm -D --defined-only hatari2014_libretro.so | grep " T retro_run"
+
+  vita:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Vita core the way the buildbot job does
+        run: |
+          docker run --rm -v "$PWD":/src -w /src vitasdk/vitasdk sh -c '
+            set -e
+            export PATH=$VITASDK/bin:$PATH
+            make -f Makefile.libretro platform=vita -j$(nproc)
+            ls -la hatari2014_libretro_vita.a
+            arm-vita-eabi-nm hatari2014_libretro_vita.a | grep -c " T retro_run"'
